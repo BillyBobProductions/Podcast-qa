@@ -49,7 +49,7 @@ export async function POST(request: Request) {
   const response = NextResponse.redirect(new URL(nextPath, request.url), {
     status: 303,
   });
-  response.cookies.set(ACCESS_COOKIE_NAME, expectedCode, {
+  response.cookies.set(ACCESS_COOKIE_NAME, `ok:${expectedCode}`, {
     httpOnly: true,
     sameSite: "lax",
     secure: true,

@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const currentCookie = request.cookies.get(ACCESS_COOKIE_NAME)?.value;
-  const isAuthorized = currentCookie === configuredCode;
+  const isAuthorized = currentCookie === `ok:${configuredCode}`;
 
   if (isPublicPath(pathname)) {
     if (pathname === "/access" && isAuthorized) {
