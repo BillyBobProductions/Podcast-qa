@@ -13,13 +13,26 @@ function isPublicPath(pathname: string): boolean {
 
 export function middleware(request: NextRequest) {
   const configuredCode = process.env[ACCESS_CODE_ENV]?.trim();
+  const pathname = request.nextUrl.pathname;
 
-  // Keep local development simple if no access code is configured.
+  // Fail closed when ACCESS_CODE is missing so the app is never accidentally public.
   if (!configuredCode) {
-    return NextResponse.next();
+    if (isPublicPath(pathname)) {
+      return NextResponse.next();
+    }
+
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json(
+        { error: "Access gate is not configured on the server." },
+        { status: 503 },
+      );
+    }
+
+    const redirectUrl = new URL("/access", request.url);
+    redirectUrl.searchParams.set("error", "misconfigured");
+    return NextResponse.redirect(redirectUrl);
   }
 
-  const pathname = request.nextUrl.pathname;
   const currentCookie = request.cookies.get(ACCESS_COOKIE_NAME)?.value;
   const isAuthorized = currentCookie === `ok:${configuredCode}`;
 

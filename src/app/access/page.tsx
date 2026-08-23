@@ -5,6 +5,7 @@ type AccessPageProps = {
 export default async function AccessPage({ searchParams }: AccessPageProps) {
   const params = (await searchParams) ?? {};
   const hasError = params.error === "1";
+  const misconfigured = params.error === "misconfigured";
   const nextPath =
     typeof params.next === "string" && params.next.startsWith("/")
       ? params.next
@@ -20,6 +21,13 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
         <p className="mt-3 text-sm leading-6 text-[#516159]">
           This app is restricted while testing. Enter your invite code to continue.
         </p>
+
+        {misconfigured ? (
+          <p className="mt-4 rounded border border-[#b8452f]/25 bg-[#b8452f]/5 p-3 text-sm text-[#b8452f]">
+            Access control is not configured yet. Set ACCESS_CODE in your deployment
+            environment and redeploy.
+          </p>
+        ) : null}
 
         {hasError ? (
           <p className="mt-4 rounded border border-[#b8452f]/25 bg-[#b8452f]/5 p-3 text-sm text-[#b8452f]">
