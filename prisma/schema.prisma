@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Podcast {
+  id        String   @id @default(cuid())
+  feedUrl   String   @unique
+  title     String?
+  author    String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  episodes  Episode[]
+}
+
+model Episode {
+  id              String      @id
+  title           String
+  description     String
+  publishedAt     DateTime?
+  audioUrl        String
+  imageUrl        String?
+  durationSeconds Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  podcastId       String?
+  podcast         Podcast?    @relation(fields: [podcastId], references: [id], onDelete: SetNull)
+  transcript      Transcript?
+
+  @@index([podcastId])
+}
+
+model Transcript {
+  id        String              @id @default(cuid())
+  episodeId String              @unique
+  status    String
+  error     String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  episode   Episode             @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  segments  TranscriptSegment[]
+}
+
+model TranscriptSegment {
+  id           String     @id @default(cuid())
+  transcriptId String
+  sortOrder    Int
+  startSeconds Float
+  endSeconds   Float
+  text         String
+  transcript   Transcript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+
+  @@unique([transcriptId, sortOrder])
+  @@index([transcriptId, startSeconds])
+}
