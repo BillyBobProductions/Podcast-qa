@@ -25,6 +25,22 @@ const PODCAST_REGIONS = [
 
 const PLAYBACK_STORAGE_KEY = "podcast-qa-playback-seconds";
 
+async function parseJsonResponse<T>(response: Response): Promise<T | null> {
+  const bodyText = await response.text();
+
+  if (!bodyText) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(bodyText) as T;
+  } catch {
+    throw new Error(
+      `Server returned an unexpected response (${response.status} ${response.statusText}).`,
+    );
+  }
+}
+
 export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const answerAudioRef = useRef<HTMLAudioElement>(null);
@@ -89,17 +105,22 @@ export default function Home() {
       const response = await fetch("/api/history/episodes?limit=10", {
         cache: "no-store",
       });
-      const payload = (await response.json()) as {
+      const payload = await parseJsonResponse<{
         episodes?: EpisodeHistoryItem[];
-      };
+        error?: string;
+      }>(response);
 
-      if (!response.ok || !payload.episodes) {
+      if (!response.ok || !payload?.episodes) {
         setHistoryEpisodes([]);
+        if (payload?.error) {
+          setNotice(payload.error);
+        }
         return;
       }
 
       setHistoryEpisodes(payload.episodes);
-    } catch {
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Unable to load history.");
       setHistoryEpisodes([]);
     } finally {
       setIsHistoryLoading(false);
@@ -249,10 +270,12 @@ export default function Home() {
         body: formData,
       });
 
-      const payload = (await response.json()) as { text?: string; error?: string };
+      const payload = await parseJsonResponse<{ text?: string; error?: string }>(
+        response,
+      );
 
-      if (!response.ok || !payload.text) {
-        throw new Error(payload.error ?? "Unable to transcribe voice.");
+      if (!response.ok || !payload?.text) {
+        throw new Error(payload?.error ?? "Unable to transcribe voice.");
       }
 
       const question = payload.text.trim();
@@ -317,13 +340,13 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ feedUrl: url }),
       });
-      const payload = (await response.json()) as {
+      const payload = await parseJsonResponse<{
         episodes?: Episode[];
         error?: string;
-      };
+      }>(response);
 
-      if (!response.ok || !payload.episodes) {
-        throw new Error(payload.error ?? "Unable to load that podcast feed.");
+      if (!response.ok || !payload?.episodes) {
+        throw new Error(payload?.error ?? "Unable to load that podcast feed.");
       }
 
       setEpisodes(payload.episodes);
@@ -358,13 +381,13 @@ export default function Home() {
       const response = await fetch(
         `/api/podcasts/search?q=${encodeURIComponent(query)}&country=${searchCountry}`,
       );
-      const payload = (await response.json()) as {
+      const payload = await parseJsonResponse<{
         podcasts?: PodcastSearchResult[];
         error?: string;
-      };
+      }>(response);
 
-      if (!response.ok || !payload.podcasts) {
-        throw new Error(payload.error ?? "Unable to search podcasts.");
+      if (!response.ok || !payload?.podcasts) {
+        throw new Error(payload?.error ?? "Unable to search podcasts.");
       }
 
       setPodcasts(payload.podcasts);
@@ -400,10 +423,10 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ episode }),
       });
-      const payload = (await response.json()) as { error?: string };
+      const payload = await parseJsonResponse<{ error?: string }>(response);
 
       if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to prepare this episode.");
+        throw new Error(payload?.error ?? "Unable to prepare this episode.");
       }
 
       setTranscriptStatus("ready");
@@ -442,10 +465,12 @@ export default function Home() {
           body: JSON.stringify({ question: trimmedQuestion, playbackSeconds }),
         },
       );
-      const payload = (await response.json()) as { answer?: string; error?: string };
+      const payload = await parseJsonResponse<{ answer?: string; error?: string }>(
+        response,
+      );
 
-      if (!response.ok || !payload.answer) {
-        throw new Error(payload.error ?? "Unable to answer that question.");
+      if (!response.ok || !payload?.answer) {
+        throw new Error(payload?.error ?? "Unable to answer that question.");
       }
 
       const answer = payload.answer;
