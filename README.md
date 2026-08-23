@@ -4,7 +4,7 @@ A prototype podcast player that answers text questions about a transcribed podca
 
 ## Run locally
 
-1. Copy `.env.example` to `.env.local` and set `DATABASE_URL` and `OPENAI_API_KEY`.
+1. Copy `.env.example` to `.env.local` and set `DATABASE_URL`, `ACCESS_CODE`, and `OPENAI_API_KEY`.
 2. Install dependencies with `npm install`.
 3. Generate Prisma client and apply schema:
 
@@ -20,6 +20,10 @@ npm run dev
 ```
 
 Open `http://localhost:3000`, paste an RSS feed URL, select an episode, wait for its transcription, then play and ask a question.
+
+## Access gate
+
+Set `ACCESS_CODE` to require an invite code before any app or API usage. When unset, the gate is disabled for local development.
 
 ## How answers are grounded
 
