@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import type { ChatMessage, Episode, PodcastSearchResult } from "@/lib/podcast";
 
@@ -70,6 +70,71 @@ export default function Home() {
   const [resumePlaybackSeconds, setResumePlaybackSeconds] = useState<number | null>(null);
   const [playbackCheckpoints, setPlaybackCheckpoints] = useState<Record<string, number>>({});
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const playerBarRef = useRef<HTMLDivElement>(null);
+  const [playerBarHeight, setPlayerBarHeight] = useState(0);
+  const [isPlayerDocked, setIsPlayerDocked] = useState(true);
+  const [playerPosition, setPlayerPosition] = useState({ x: 24, y: 24 });
+  const playerDragOffsetRef = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const playerBar = playerBarRef.current;
+    if (!playerBar) {
+      setPlayerBarHeight(0);
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      setPlayerBarHeight(entries[0]?.contentRect.height ?? 0);
+    });
+    observer.observe(playerBar);
+
+    return () => observer.disconnect();
+  }, [selectedEpisode, isPlayerDocked]);
+
+  function undockPlayer() {
+    const bar = playerBarRef.current;
+    const width = bar?.offsetWidth ?? 360;
+    const height = bar?.offsetHeight ?? 140;
+    setPlayerPosition({
+      x: Math.max(0, window.innerWidth - width - 24),
+      y: Math.max(0, window.innerHeight - height - 24),
+    });
+    setIsPlayerDocked(false);
+  }
+
+  function handlePlayerDragPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    const bar = playerBarRef.current;
+    if (!bar) {
+      return;
+    }
+
+    const rect = bar.getBoundingClientRect();
+    playerDragOffsetRef.current = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePlayerDragPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const offset = playerDragOffsetRef.current;
+    const bar = playerBarRef.current;
+    if (!offset || !bar) {
+      return;
+    }
+
+    const maxX = Math.max(0, window.innerWidth - bar.offsetWidth);
+    const maxY = Math.max(0, window.innerHeight - bar.offsetHeight);
+    setPlayerPosition({
+      x: Math.min(Math.max(0, event.clientX - offset.x), maxX),
+      y: Math.min(Math.max(0, event.clientY - offset.y), maxY),
+    });
+  }
+
+  function handlePlayerDragPointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    playerDragOffsetRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  }
 
   function pausePodcastForVoiceTurn() {
     const podcastAudio = audioRef.current;
@@ -584,9 +649,10 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#f4f1e8] text-[#17211d]">
       <div
-        className={`mx-auto max-w-7xl px-5 py-8 md:px-10 lg:py-12 ${
-          selectedEpisode ? "pb-28" : ""
-        }`}
+        className="mx-auto max-w-7xl px-5 py-8 md:px-10 lg:py-12"
+        style={{
+          paddingBottom: selectedEpisode && isPlayerDocked ? playerBarHeight + 24 : undefined,
+        }}
       >
         <section className="flex min-w-0 flex-col">
           <header className="mb-12 border-b border-[#17211d]/15 pb-7">
@@ -819,7 +885,7 @@ export default function Home() {
       </div>
 
       {isChatOpen ? (
-        <aside className="fixed bottom-24 right-5 z-40 flex max-h-[70vh] w-[min(24rem,calc(100vw-2.5rem))] flex-col border border-[#17211d]/20 bg-[#fffdf8] p-5 shadow-[0_8px_28px_rgba(23,33,29,0.22)] md:p-7">
+        <aside className="fixed right-5 top-1/2 z-40 flex max-h-[70vh] w-[min(24rem,calc(100vw-2.5rem))] -translate-y-1/2 flex-col border border-[#17211d]/20 bg-[#fffdf8] p-5 shadow-[0_8px_28px_rgba(23,33,29,0.22)] md:p-7">
           <audio ref={answerAudioRef} className="hidden" />
           <div className="border-b border-[#17211d]/15 pb-5">
             <div className="flex items-start justify-between gap-3">
@@ -943,8 +1009,36 @@ export default function Home() {
       )}
 
       {selectedEpisode ? (
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#17211d]/20 bg-[#fffdf8] px-5 py-3 shadow-[0_-4px_16px_rgba(23,33,29,0.12)] md:px-10">
-          <div className="mx-auto flex max-w-7xl items-center gap-4">
+        <div
+          ref={playerBarRef}
+          className={
+            isPlayerDocked
+              ? "fixed inset-x-0 bottom-0 z-50 border-t border-[#17211d]/20 bg-[#fffdf8] px-5 py-3 shadow-[0_-4px_16px_rgba(23,33,29,0.12)] md:px-10"
+              : "fixed z-50 w-[min(22rem,calc(100vw-2.5rem))] border border-[#17211d]/20 bg-[#fffdf8] px-4 py-3 shadow-[0_8px_28px_rgba(23,33,29,0.28)]"
+          }
+          style={isPlayerDocked ? undefined : { left: playerPosition.x, top: playerPosition.y }}
+        >
+          <div className={isPlayerDocked ? "mx-auto flex max-w-7xl items-center gap-4" : "flex flex-col gap-2"}>
+            {isPlayerDocked ? null : (
+              <div
+                className="-mx-4 -mt-3 mb-1 flex cursor-move items-center justify-between border-b border-[#17211d]/15 px-4 py-2 touch-none select-none"
+                onPointerDown={handlePlayerDragPointerDown}
+                onPointerMove={handlePlayerDragPointerMove}
+                onPointerUp={handlePlayerDragPointerUp}
+              >
+                <span className="font-mono text-[10px] tracking-[0.14em] text-[#516159] uppercase">
+                  ⠿ Drag to move
+                </span>
+                <button
+                  className="text-xs font-semibold uppercase text-[#516159] hover:text-[#b8452f]"
+                  onClick={() => setIsPlayerDocked(true)}
+                  title="Dock player"
+                  type="button"
+                >
+                  Dock
+                </button>
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate font-serif text-lg leading-tight">
                 {selectedEpisode.title}
@@ -976,17 +1070,30 @@ export default function Home() {
                 Your browser does not support audio playback.
               </audio>
             </div>
-            <button
-              className="shrink-0 border border-[#17211d]/25 px-3 py-2 text-xs font-semibold uppercase transition-colors hover:border-[#b8452f] hover:text-[#b8452f]"
-              onClick={() => {
-                audioRef.current?.pause();
-                setSelectedEpisode(null);
-              }}
-              title="Close player"
-              type="button"
-            >
-              ✕
-            </button>
+            <div className={isPlayerDocked ? "flex shrink-0 gap-2" : "flex justify-end gap-2"}>
+              {isPlayerDocked ? (
+                <button
+                  className="shrink-0 border border-[#17211d]/25 px-3 py-2 text-xs font-semibold uppercase transition-colors hover:border-[#b8452f] hover:text-[#b8452f]"
+                  onClick={undockPlayer}
+                  title="Undock player"
+                  type="button"
+                >
+                  ⤢
+                </button>
+              ) : null}
+              <button
+                className="shrink-0 border border-[#17211d]/25 px-3 py-2 text-xs font-semibold uppercase transition-colors hover:border-[#b8452f] hover:text-[#b8452f]"
+                onClick={() => {
+                  audioRef.current?.pause();
+                  setSelectedEpisode(null);
+                  setIsPlayerDocked(true);
+                }}
+                title="Close player"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
