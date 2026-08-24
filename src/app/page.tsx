@@ -69,6 +69,7 @@ export default function Home() {
   const [continuousListening, setContinuousListening] = useState(false);
   const [resumePlaybackSeconds, setResumePlaybackSeconds] = useState<number | null>(null);
   const [playbackCheckpoints, setPlaybackCheckpoints] = useState<Record<string, number>>({});
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   function pausePodcastForVoiceTurn() {
     const podcastAudio = audioRef.current;
@@ -583,7 +584,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#f4f1e8] text-[#17211d]">
       <div
-        className={`mx-auto grid min-h-screen max-w-7xl gap-10 px-5 py-8 md:px-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] lg:py-12 ${
+        className={`mx-auto max-w-7xl px-5 py-8 md:px-10 lg:py-12 ${
           selectedEpisode ? "pb-28" : ""
         }`}
       >
@@ -815,8 +816,10 @@ export default function Home() {
             </div>
           ) : null}
         </section>
+      </div>
 
-        <aside className="flex min-h-[520px] flex-col border border-[#17211d]/20 bg-[#fffdf8] p-5 md:p-7">
+      {isChatOpen ? (
+        <aside className="fixed bottom-24 right-5 z-40 flex max-h-[70vh] w-[min(24rem,calc(100vw-2.5rem))] flex-col border border-[#17211d]/20 bg-[#fffdf8] p-5 shadow-[0_8px_28px_rgba(23,33,29,0.22)] md:p-7">
           <audio ref={answerAudioRef} className="hidden" />
           <div className="border-b border-[#17211d]/15 pb-5">
             <div className="flex items-start justify-between gap-3">
@@ -826,6 +829,16 @@ export default function Home() {
                 </p>
                 <h2 className="mt-2 font-serif text-3xl">Ask while you listen.</h2>
               </div>
+              <button
+                className="shrink-0 border border-[#17211d]/25 px-3 py-2 text-xs font-semibold uppercase transition-colors hover:border-[#b8452f] hover:text-[#b8452f]"
+                onClick={() => setIsChatOpen(false)}
+                title="Close chat"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mt-3 flex gap-2">
               <button
                 className={`shrink-0 border px-3 py-2 text-xs font-semibold uppercase transition-colors ${
                   voiceEnabled
@@ -857,7 +870,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="flex-1 space-y-5 py-6" aria-live="polite">
+          <div className="flex-1 space-y-5 overflow-y-auto py-6" aria-live="polite">
             {messages.length === 0 ? (
               <p className="max-w-sm text-sm leading-6 text-[#516159]">
                 Questions unlock after the episode transcript is ready, and can
@@ -918,7 +931,16 @@ export default function Home() {
             </div>
           </form>
         </aside>
-      </div>
+      ) : (
+        <button
+          className="fixed bottom-24 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#b8452f] text-2xl text-white shadow-[0_8px_20px_rgba(23,33,29,0.28)] transition-colors hover:bg-[#17211d]"
+          onClick={() => setIsChatOpen(true)}
+          title="Ask the episode"
+          type="button"
+        >
+          💬
+        </button>
+      )}
 
       {selectedEpisode ? (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#17211d]/20 bg-[#fffdf8] px-5 py-3 shadow-[0_-4px_16px_rgba(23,33,29,0.12)] md:px-10">
