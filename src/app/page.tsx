@@ -154,6 +154,48 @@ export default function Home() {
     event.currentTarget.releasePointerCapture(event.pointerId);
   }
 
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) {
+      return;
+    }
+
+    if (!selectedEpisode) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.setActionHandler("play", null);
+      navigator.mediaSession.setActionHandler("pause", null);
+      navigator.mediaSession.setActionHandler("seekbackward", null);
+      navigator.mediaSession.setActionHandler("seekforward", null);
+      return;
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: selectedEpisode.title,
+      artist: "In the Moment",
+      artwork: selectedEpisode.imageUrl
+        ? [{ src: selectedEpisode.imageUrl, sizes: "512x512", type: "image/jpeg" }]
+        : [],
+    });
+
+    navigator.mediaSession.setActionHandler("play", () => {
+      void audioRef.current?.play();
+    });
+    navigator.mediaSession.setActionHandler("pause", () => {
+      audioRef.current?.pause();
+    });
+    navigator.mediaSession.setActionHandler("seekbackward", () => {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.currentTime = Math.max(0, audio.currentTime - 15);
+      }
+    });
+    navigator.mediaSession.setActionHandler("seekforward", () => {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.currentTime = Math.min(audio.duration || Infinity, audio.currentTime + 15);
+      }
+    });
+  }, [selectedEpisode]);
+
   function pausePodcastForVoiceTurn() {
     const podcastAudio = audioRef.current;
     if (!podcastAudio) {
@@ -1081,6 +1123,16 @@ export default function Home() {
 
                   if (selectedEpisode) {
                     updatePlaybackPosition(selectedEpisode.id, currentTime);
+                  }
+                }}
+                onPlay={() => {
+                  if ("mediaSession" in navigator) {
+                    navigator.mediaSession.playbackState = "playing";
+                  }
+                }}
+                onPause={() => {
+                  if ("mediaSession" in navigator) {
+                    navigator.mediaSession.playbackState = "paused";
                   }
                 }}
                 src={selectedEpisode.audioUrl}

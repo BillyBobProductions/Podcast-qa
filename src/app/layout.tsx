@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { DM_Mono, Fraunces, Work_Sans } from "next/font/google";
 import "./globals.css";
@@ -22,6 +22,23 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "In the Moment | Podcast Q&A",
   description: "Ask questions about the part of a podcast episode you have heard.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "In the Moment",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#b8452f",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
