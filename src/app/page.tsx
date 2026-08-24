@@ -582,7 +582,11 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#f4f1e8] text-[#17211d]">
-      <div className="mx-auto grid min-h-screen max-w-7xl gap-10 px-5 py-8 md:px-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] lg:py-12">
+      <div
+        className={`mx-auto grid min-h-screen max-w-7xl gap-10 px-5 py-8 md:px-10 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] lg:py-12 ${
+          selectedEpisode ? "pb-28" : ""
+        }`}
+      >
         <section className="flex min-w-0 flex-col">
           <header className="mb-12 border-b border-[#17211d]/15 pb-7">
             <p className="font-mono text-xs font-semibold tracking-[0.18em] text-[#b8452f] uppercase">
@@ -805,32 +809,6 @@ export default function Home() {
               <p className="mt-4 max-w-2xl text-sm leading-6 text-[#516159]">
                 {selectedEpisode.description}
               </p>
-              <audio
-                ref={audioRef}
-                className="mt-8 w-full accent-[#b8452f]"
-                controls
-                onLoadedMetadata={(event) => {
-                  if (resumePlaybackSeconds === null) {
-                    return;
-                  }
-
-                  const maxSeek = Math.max(0, event.currentTarget.duration - 1);
-                  event.currentTarget.currentTime = Math.min(resumePlaybackSeconds, maxSeek);
-                  setPlaybackSeconds(event.currentTarget.currentTime);
-                  setResumePlaybackSeconds(null);
-                }}
-                onTimeUpdate={(event) => {
-                  const currentTime = event.currentTarget.currentTime;
-                  setPlaybackSeconds(currentTime);
-
-                  if (selectedEpisode) {
-                    updatePlaybackPosition(selectedEpisode.id, currentTime);
-                  }
-                }}
-                src={selectedEpisode.audioUrl}
-              >
-                Your browser does not support audio playback.
-              </audio>
               <p className="mt-3 font-mono text-xs tracking-[0.12em] text-[#516159] uppercase">
                 {transcriptLabel}
               </p>
@@ -941,6 +919,55 @@ export default function Home() {
           </form>
         </aside>
       </div>
+
+      {selectedEpisode ? (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-[#17211d]/20 bg-[#fffdf8] px-5 py-3 shadow-[0_-4px_16px_rgba(23,33,29,0.12)] md:px-10">
+          <div className="mx-auto flex max-w-7xl items-center gap-4">
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-serif text-lg leading-tight">
+                {selectedEpisode.title}
+              </p>
+              <audio
+                ref={audioRef}
+                className="mt-2 w-full accent-[#b8452f]"
+                controls
+                onLoadedMetadata={(event) => {
+                  if (resumePlaybackSeconds === null) {
+                    return;
+                  }
+
+                  const maxSeek = Math.max(0, event.currentTarget.duration - 1);
+                  event.currentTarget.currentTime = Math.min(resumePlaybackSeconds, maxSeek);
+                  setPlaybackSeconds(event.currentTarget.currentTime);
+                  setResumePlaybackSeconds(null);
+                }}
+                onTimeUpdate={(event) => {
+                  const currentTime = event.currentTarget.currentTime;
+                  setPlaybackSeconds(currentTime);
+
+                  if (selectedEpisode) {
+                    updatePlaybackPosition(selectedEpisode.id, currentTime);
+                  }
+                }}
+                src={selectedEpisode.audioUrl}
+              >
+                Your browser does not support audio playback.
+              </audio>
+            </div>
+            <button
+              className="shrink-0 border border-[#17211d]/25 px-3 py-2 text-xs font-semibold uppercase transition-colors hover:border-[#b8452f] hover:text-[#b8452f]"
+              onClick={() => {
+                audioRef.current?.pause();
+                setSelectedEpisode(null);
+              }}
+              title="Close player"
+              type="button"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
