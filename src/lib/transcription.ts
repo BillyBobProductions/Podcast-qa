@@ -13,6 +13,8 @@ const CHUNK_DURATION_SECONDS = 20 * 60;
 const CHUNK_BITRATE = "64k";
 const TRANSCRIPTIONS_URL = "https://api.openai.com/v1/audio/transcriptions";
 const execFileAsync = promisify(execFile);
+const FFMPEG_PATH = process.env.FFMPEG_PATH || "ffmpeg";
+const FFPROBE_PATH = process.env.FFPROBE_PATH || "ffprobe";
 
 type TranscriptionResponse = {
   segments?: Array<{ start?: unknown; end?: unknown; text?: unknown }>;
@@ -95,7 +97,7 @@ async function prepareAudioChunks(
       chunkDurationSeconds: CHUNK_DURATION_SECONDS,
       bitrate: CHUNK_BITRATE,
     });
-    await execFileAsync("ffmpeg", [
+    await execFileAsync(FFMPEG_PATH, [
       "-hide_banner",
       "-loglevel",
       "error",
@@ -113,7 +115,9 @@ async function prepareAudioChunks(
       "-reset_timestamps",
       "1",
       chunkPattern,
-    ]);
+    ]).catch((error) => {
+      throw isMissingFile(error) ? ffmpegNotFoundError(FFMPEG_PATH) : error;
+    });
 
     const chunks: AudioChunk[] = [];
     let offsetSeconds = 0;
@@ -305,7 +309,7 @@ async function downloadAudio(audioUrl: string, episodeId: string): Promise<Respo
 }
 
 async function durationSeconds(path: string): Promise<number> {
-  const { stdout } = await execFileAsync("ffprobe", [
+  const { stdout } = await execFileAsync(FFPROBE_PATH, [
     "-v",
     "error",
     "-show_entries",
@@ -313,7 +317,9 @@ async function durationSeconds(path: string): Promise<number> {
     "-of",
     "default=noprint_wrappers=1:nokey=1",
     path,
-  ]);
+  ]).catch((error) => {
+    throw isMissingFile(error) ? ffmpegNotFoundError(FFPROBE_PATH) : error;
+  });
   const duration = Number.parseFloat(stdout.trim());
 
   if (!Number.isFinite(duration) || duration <= 0) {
@@ -321,6 +327,12 @@ async function durationSeconds(path: string): Promise<number> {
   }
 
   return duration;
+}
+
+function ffmpegNotFoundError(binaryPath: string): Error {
+  return new Error(
+    `Could not find "${binaryPath}" on this machine. Install FFmpeg and make sure it is on PATH (restart the dev server after installing), or set FFMPEG_PATH/FFPROBE_PATH in your .env to the full executable paths.`,
+  );
 }
 
 function isMissingFile(error: unknown): boolean {
