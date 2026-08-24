@@ -72,9 +72,10 @@ export default function Home() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const playerBarRef = useRef<HTMLDivElement>(null);
   const [playerBarHeight, setPlayerBarHeight] = useState(0);
-  const [isPlayerDocked, setIsPlayerDocked] = useState(true);
+  const [isPlayerDocked, setIsPlayerDocked] = useState(false);
   const [playerPosition, setPlayerPosition] = useState({ x: 24, y: 24 });
   const playerDragOffsetRef = useRef<{ x: number; y: number } | null>(null);
+  const hasPositionedPlayerRef = useRef(false);
 
   useEffect(() => {
     const playerBar = playerBarRef.current;
@@ -89,6 +90,23 @@ export default function Home() {
     observer.observe(playerBar);
 
     return () => observer.disconnect();
+  }, [selectedEpisode, isPlayerDocked]);
+
+  useEffect(() => {
+    if (!selectedEpisode || isPlayerDocked || hasPositionedPlayerRef.current) {
+      return;
+    }
+
+    const bar = playerBarRef.current;
+    if (!bar) {
+      return;
+    }
+
+    hasPositionedPlayerRef.current = true;
+    setPlayerPosition({
+      x: Math.max(0, window.innerWidth - bar.offsetWidth - 24),
+      y: Math.max(0, window.innerHeight - bar.offsetHeight - 24),
+    });
   }, [selectedEpisode, isPlayerDocked]);
 
   function undockPlayer() {
@@ -1086,7 +1104,8 @@ export default function Home() {
                 onClick={() => {
                   audioRef.current?.pause();
                   setSelectedEpisode(null);
-                  setIsPlayerDocked(true);
+                  setIsPlayerDocked(false);
+                  hasPositionedPlayerRef.current = false;
                 }}
                 title="Close player"
                 type="button"
