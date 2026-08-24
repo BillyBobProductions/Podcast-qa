@@ -4,6 +4,8 @@ import { join } from "node:path";
 import { request as httpsRequest } from "node:https";
 import { promisify } from "node:util";
 import { execFile } from "node:child_process";
+import ffmpegStaticPath from "ffmpeg-static";
+import ffprobeStatic from "ffprobe-static";
 
 import { getEpisode, saveTranscript } from "@/lib/episode-store";
 import type { TranscriptSegment } from "@/lib/podcast";
@@ -13,8 +15,8 @@ const CHUNK_DURATION_SECONDS = 20 * 60;
 const CHUNK_BITRATE = "64k";
 const TRANSCRIPTIONS_URL = "https://api.openai.com/v1/audio/transcriptions";
 const execFileAsync = promisify(execFile);
-const FFMPEG_PATH = process.env.FFMPEG_PATH || "ffmpeg";
-const FFPROBE_PATH = process.env.FFPROBE_PATH || "ffprobe";
+const FFMPEG_PATH = process.env.FFMPEG_PATH || ffmpegStaticPath || "ffmpeg";
+const FFPROBE_PATH = process.env.FFPROBE_PATH || ffprobeStatic.path || "ffprobe";
 
 type TranscriptionResponse = {
   segments?: Array<{ start?: unknown; end?: unknown; text?: unknown }>;

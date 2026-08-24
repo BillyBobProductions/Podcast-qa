@@ -14,6 +14,8 @@
   "dependencies": {
     "@prisma/client": "^6.16.2",
     "fast-xml-parser": "^5.11.0",
+    "ffmpeg-static": "^5.3.0",
+    "ffprobe-static": "^3.1.0",
     "next": "16.3.2",
     "prisma": "^6.16.2",
     "react": "19.2.8",
